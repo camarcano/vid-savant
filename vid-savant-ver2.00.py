@@ -96,3 +96,5 @@ for file in files:
     file_name = os.path.basename(file)
     shutil.move(file, dst_folder + file_name)
     print('Moved:', file)
+
+### TESTING GIT
