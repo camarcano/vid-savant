@@ -9,31 +9,31 @@ import requests
 import youtube_dl
 from bs4 import BeautifulSoup
 import pandas as pd
-import lxml
 
 
 def find_video_links(webpage_html):
     expression = r'"(/sporty-v.*?)" target'
     return re.findall(expression, webpage_html)
 
+
 def find_pitch_types(webpage_html):
     expression = r'search-pitch-label-.*?</span>'
     return re.findall(expression, webpage_html)
 
-    
 
 def download_video(url, name):
     url_2 = f"https://baseballsavant.mlb.com{url}"
     with youtube_dl.YoutubeDL(ydl_opts) as ydl:
         ydl.download([url_2])
 
-# Downloads the list of given URLs with youtbe-dl
+
 def download_all_matches(matches):
     i = 1
     for match in matches:
         print(f"Downloading video {i} of {len(matches)} with url: https://baseballsavant.mlb.com{match}")
         download_video(match, i)
         i += 1
+
 
 def rename(directory):
     os.chdir(directory)
@@ -43,7 +43,9 @@ def rename(directory):
             os.rename(file, "name{:03d}.mp4".format(num))
             num += 1
 
+
 ydl_opts = {}
+
 
 # Expects date arguments in the format 2019-05-11
 start_date = input("Enter start date (YYYY-MM-DD): ")
@@ -86,7 +88,13 @@ if len(matches) <= 1:
     print("ERROR, 0 matches found in request")
     exit()
 
-download_all_matches(matches)
+pitch = input("Enter pitch  type: ")
+found = df.index[df['Pitch'] == pitch].tolist()
+df2 = df.loc[df['Pitch'] == pitch]
+result = [matches[i] for i in found]
+
+"""
+download_all_matches(result)
 rename(os.getcwd())
 
 src_folder = os.getcwd()
@@ -109,3 +117,7 @@ for file in files:
     shutil.move(file, dst_folder + file_name)
     print('Moved:', file)
 
+"""
+df2['MPH'] = df2['MPH'].astype(float)
+avg = df2["MPH"].mean()
+print(avg)
