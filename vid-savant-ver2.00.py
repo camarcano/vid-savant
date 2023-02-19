@@ -5,6 +5,8 @@ import re
 import os
 import wget
 import youtube_dl
+import glob
+import shutil
 
 def find_video_links(webpageHTML):
     expression = r'"(/sporty-v.*?)" target'
@@ -12,7 +14,6 @@ def find_video_links(webpageHTML):
 
 def download_video(url, name):
     url2=f"https://baseballsavant.mlb.com{url}"
-    dest=f"{name}.mp4"
     #command = f"youtube-dl https://baseballsavant.mlb.com{url} -o {name}.mp4"
     #os.system(command)
     #urllib.request.urlretrieve(url2,dest)
@@ -33,7 +34,7 @@ def rename(directory):
     num = 1
     for file in [file for file in sorted(os.listdir(), key=os.path.getctime, reverse=True) if os.path.splitext(file)[1] == ".mp4"]:
         if os.path.splitext(file)[1] == ".mp4":
-            os.rename(file, f"name{num}.mp4")
+            os.rename(file, "name{:03d}.mp4".format(num))
             num += 1
 
 
@@ -75,3 +76,23 @@ if len(matches) <= 1:
 
 download_all_matches(matches)
 rename(os.getcwd())
+
+src_folder = os.getcwd()
+dst_folder = os.getcwd() + "/videos/"
+
+try: 
+    os.mkdir(dst_folder) 
+except OSError as error: 
+    print("Directory 'videos' already exists") 
+
+
+# Search files with .mp4 extension in source directory
+pattern = "\*.mp4"
+files = glob.glob(src_folder + pattern)
+
+# move the files with mp4 extension
+for file in files:
+    # extract file name form file path
+    file_name = os.path.basename(file)
+    shutil.move(file, dst_folder + file_name)
+    print('Moved:', file)
