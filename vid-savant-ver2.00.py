@@ -1,5 +1,6 @@
-# ## Getting videos and info from Baseball Savant ###
-
+# Getting videos and info from Baseball Savant ###
+""" The following code allows a throughful extraction
+of data from Baseball Savant """
 
 import re
 import os
@@ -11,7 +12,7 @@ import youtube_dl
 from bs4 import BeautifulSoup
 import pandas as pd
 import unicodecsv as csv
-
+from fuzzywuzzy import fuzz
 
 def find_video_links(webpage_html):
     """ Extracts the portion of the link that points to
@@ -81,8 +82,9 @@ def save_to_file(player, player_data):
         reversed_rows = rows[:0:-1]
         rows = rows[:1] + reversed_rows
         writer.writerows(rows)
-   
+ 
 
+# Parameters for youtube
 ydl_opts = {}
 
 
@@ -90,7 +92,50 @@ ydl_opts = {}
 start_date = input("Enter start date (YYYY-MM-DD): ")
 end_date = input("Enter end date (YYYY-MM-DD): ")
 season = start_date[:4]
-player_id = input("Enter player ID: ")
+
+
+# player_id = input("Enter player ID: ")
+
+
+url_id_map='https://drive.google.com/file/d/1KdSy7hWrrvpBbDVlR07yv5xxjZdfKK2F/view?usp=share_link'
+url_id_map='https://drive.google.com/uc?id=' + url_id_map.split('/')[-2]
+df_id_map = pd.read_csv(url_id_map)
+
+exect = True
+player_name = ""
+while exect:
+    player_name = input('Enter player name - NAME LASTNAME: ')
+
+    # Create an empty dataframe to store matching rows
+    matching_df = pd.DataFrame(columns=df_id_map.columns)
+
+    # Loop through each row of the original dataframe
+    for index, row in df_id_map.iterrows():
+        # Use the fuzzywuzzy library to compare the name variable to the value in column B
+        # If the match score is above the threshold of 70, add the row to the matching dataframe
+        if fuzz.token_sort_ratio(player_name, row["MLBNAME"]) > 75:
+            matching_df = matching_df.append(row)
+    if (len(matching_df)) == 0:
+        print("There were no matches")
+    else:
+        for a in range(0, len(matching_df)):
+            print(str(a+1) + "-" + str(matching_df['MLBNAME'].iloc[a]) + 
+            ", " + str(matching_df['BIRTHDATE'].iloc[a])  + 
+            ", " + str(matching_df['POS'].iloc[a])) 
+        selection = int(input("Enter the number for your selection: "))
+        matching_df = matching_df.iloc[[selection-1]]
+    
+    print("Your selection: ")
+    print(str(matching_df['MLBNAME'].iloc[0]) + 
+            ", " + str(matching_df['BIRTHDATE'].iloc[0])  + 
+            ", " + str(matching_df['POS'].iloc[0]))
+    test = input("Do you want to change the player? (y/n)")
+    if (test.lower() == "n"):
+        exect = False
+
+
+    
+    """
 is_last_pitch_str = input("Is last pitch (True/False)? ")
 
 is_last_pitch = is_last_pitch_str.lower() == "true"
@@ -222,4 +267,4 @@ with requests.get(url_feed, params=query_params, timeout=100) as r:
     response = r.json()
 
 save_to_file("player", response)
-
+"""
