@@ -7,12 +7,14 @@ import os
 import glob
 import shutil
 from urllib.parse import urlencode, urljoin
+import sys
 import requests
 import youtube_dl
 from bs4 import BeautifulSoup
 import pandas as pd
 import unicodecsv as csv
 from fuzzywuzzy import fuzz
+
 
 
 def find_video_links(webpage_html):
@@ -143,7 +145,32 @@ is_last_pitch = is_last_pitch_str.lower() == "true"
 flag = "is...last...pitch|" if is_last_pitch else ""
 player_type = "pitcher" if matching_df['POS'].iloc[0] == "P" else "batter"
 lookup = "pitchers" if player_type == "pitcher" else "batters"
-url = f"https://baseballsavant.mlb.com/statcast_search?hfPTM=&hfPT=&hfAB=&hfGT=R%7C&hfPR=&hfZ=&hfStadium=&hfBBL=&hfNewZones=&hfPull=&hfC=&hfSea={season}%7C&hfSit=&player_type={player_type}&hfOuts=&hfOpponent=&pitcher_throws=&batter_stands=&hfSA=&game_date_gt={start_date}&game_date_lt={end_date}&hfMo=&hfTeam=&home_road=&hfRO=&position=&hfInfield=&hfOutfield=&hfInn=&hfBBT=&hfFlag={flag}&{lookup}_lookup%5B%5D={player_id}&metric_1=&group_by=name&min_pitches=0&min_results=0&min_pas=0&sort_col=pitches&player_event_sort=api_p_release_speed&sort_order=desc&type=details&player_id={player_id}"
+
+advanced = input("Do you want to tweak the advanced parameters? (y/n): ")
+
+hand1 = ""
+hand2 = ""
+while (advanced.upper() == "Y" or advanced.upper() == "YES"):
+    if (player_type == "pitcher"):
+        hand1 = input("Against which batter's handeness? (L/R/ALL): ")
+        hand2 = ""
+    else:
+        hand1 = ""
+        hand2 = input("Against which pitcher's handeness? (L/R/ALL): ")
+    hand1 = hand1.upper()
+    hand2 = hand2.upper()
+   
+    if (hand1 != "L" and hand1 != "R"):
+        hand1 = ""
+    if (hand2 != "L" and hand2 != "R"):
+        hand2 = ""
+   
+
+    advanced = "N"
+
+        
+        
+url = f"https://baseballsavant.mlb.com/statcast_search?hfPTM=&hfPT=&hfAB=&hfGT=R%7C&hfPR=&hfZ=&hfStadium=&hfBBL=&hfNewZones=&hfPull=&hfC=&hfSea={season}%7C&hfSit=&player_type={player_type}&hfOuts=&hfOpponent=&pitcher_throws={hand2}&batter_stands={hand1}&hfSA=&game_date_gt={start_date}&game_date_lt={end_date}&hfMo=&hfTeam=&home_road=&hfRO=&position=&hfInfield=&hfOutfield=&hfInn=&hfBBT=&hfFlag={flag}&{lookup}_lookup%5B%5D={player_id}&metric_1=&group_by=name&min_pitches=0&min_results=0&min_pas=0&sort_col=pitches&player_event_sort=api_p_release_speed&sort_order=desc&type=details&player_id={player_id}"
 r = requests.get(url, allow_redirects=True, timeout=100)
 html = r.content
 print(url)
@@ -162,19 +189,21 @@ table1 = soup.find('table', id=f"ajaxTable_{player_id}")
 
 # Obtain every title of columns with tag <th>
 headers = []
-for i in table1.find_all('th'):
-    title = i.text
-    headers.append(title)
+
+if table1:
+    for i in table1.find_all('th'):
+        title = i.text
+        headers.append(title)
 
 
-df = pd.read_html(lines, encoding='latin1', header=0)[0]
-del df[df.columns[-1]]
-df = df.loc[::-1].reset_index(drop=True)
+    df = pd.read_html(lines, encoding='latin1', header=0)[0]
+    del df[df.columns[-1]]
+    df = df.loc[::-1].reset_index(drop=True)
 
 
 if len(matches) <= 1:
     print("ERROR, 0 matches found in request")
-    exit()
+    sys.exit()
 
 pitches = ['EP', 'CU', 'CH', 'SI', 'SL', 'FF', 'FA', 'FC',
            'KC', 'FS', 'CS', 'PO', 'IN', 'SC']
@@ -235,8 +264,8 @@ query_params = {
     "player_type": player_type,
     "hfOuts": "",
     "hfOpponent": "",
-    "pitcher_throws": "",
-    "batter_stands": "",
+    "pitcher_throws": hand2,
+    "batter_stands": hand1,
     "hfSA": "",
     "game_date_gt": start_date,
     "game_date_lt": end_date,
