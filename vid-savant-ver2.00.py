@@ -1,4 +1,4 @@
-# Getting videos and info from Baseball Savant ###
+# Getting videos and info from Baseball Savant ####
 """ The following code allows a throughful extraction
 of data from Baseball Savant """
 
