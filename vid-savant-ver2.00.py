@@ -1,34 +1,42 @@
-# ## Getting videos from Baseball Savant ###
+# ## Getting videos and info from Baseball Savant ###
 
-# import urllib.request
+
 import re
 import os
 import glob
 import shutil
+from urllib.parse import urlencode, urljoin
 import requests
 import youtube_dl
 from bs4 import BeautifulSoup
 import pandas as pd
-from urllib.parse import urlencode, urljoin
 import unicodecsv as csv
 
 
 def find_video_links(webpage_html):
+    """ Extracts the portion of the link that points to
+    the video file """
     expression = r'"(/sporty-v.*?)" target'
     return re.findall(expression, webpage_html)
 
+
 def find_pitch_types(webpage_html):
+    """ Extracts the portion of the tag that points
+     to the pitch type """
     expression = r'search-pitch-label-.*?</span>'
     return re.findall(expression, webpage_html)
 
 
 def download_video(url, name):
+    """ Downloads the video file, according to the
+     pitch url """
     url_2 = f"https://baseballsavant.mlb.com{url}"
     with youtube_dl.YoutubeDL(ydl_opts) as ydl:
         ydl.download([url_2])
 
 
 def download_all_matches(matches):
+    """ Download all pitches video files """
     i = 1
     for match in matches:
         print(f"Downloading video {i} of {len(matches)} with url: https://baseballsavant.mlb.com{match}")
@@ -37,6 +45,7 @@ def download_all_matches(matches):
 
 
 def rename(directory):
+    """ Rename all the downloaded video files """
     os.chdir(directory)
     num = 1
     for file in [file for file in sorted(os.listdir(), key=os.path.getctime, reverse=False) if os.path.splitext(file)[1] == ".mp4"]:
@@ -46,6 +55,7 @@ def rename(directory):
 
 
 def save_to_file(player, player_data):
+    """ Save the full data for each pitch to a csv file """
     if not player_data:
         print("No player data to save to file.")
         return
@@ -65,17 +75,13 @@ def save_to_file(player, player_data):
         rows.append(header)
 
         for data in player_data:
-          row = [data[key] for key in header]
-          #writer.writerow(row)
-          rows.append(row)
+            row = [data[key] for key in header]
+            rows.append(row)
 
         reversed_rows = rows[:0:-1]
         rows = rows[:1] + reversed_rows
         writer.writerows(rows)
-    
-
-
-
+   
 
 ydl_opts = {}
 
@@ -90,7 +96,7 @@ is_last_pitch_str = input("Is last pitch (True/False)? ")
 is_last_pitch = is_last_pitch_str.lower() == "true"
 flag = "is...last...pitch|" if is_last_pitch else ""
 url = f"https://baseballsavant.mlb.com/statcast_search?hfPTM=&hfPT=&hfAB=&hfGT=R%7C&hfPR=&hfZ=&hfStadium=&hfBBL=&hfNewZones=&hfPull=&hfC=&hfSea={season}%7C&hfSit=&player_type=pitcher&hfOuts=&hfOpponent=&pitcher_throws=&batter_stands=&hfSA=&game_date_gt={start_date}&game_date_lt={end_date}&hfMo=&hfTeam=&home_road=&hfRO=&position=&hfInfield=&hfOutfield=&hfInn=&hfBBT=&hfFlag={flag}&pitchers_lookup%5B%5D={player_id}&metric_1=&group_by=name&min_pitches=0&min_results=0&min_pas=0&sort_col=pitches&player_event_sort=api_p_release_speed&sort_order=desc&type=details&player_id={player_id}"
-r = requests.get(url, allow_redirects=True)
+r = requests.get(url, allow_redirects=True, timeout=100)
 html = r.content
 
 open('site.txt', 'wb').write(html)
@@ -121,7 +127,7 @@ if len(matches) <= 1:
     print("ERROR, 0 matches found in request")
     exit()
 
-pitches = ['EP', 'CU', 'CH', 'SI', 'SL', 'FF', 'FA', 'FC', 
+pitches = ['EP', 'CU', 'CH', 'SI', 'SL', 'FF', 'FA', 'FC',
            'KC', 'FS', 'CS', 'PO', 'IN', 'SC']
 pitch = input("Enter pitch  type: ")
 if pitch.upper() in pitches:
@@ -137,18 +143,17 @@ else:
 
 down = input("Do you want to download the pitches? (y/n): ")
 
-if(down.lower()=='y'):
+if (down.lower() == 'y'):
     download_all_matches(result)
     rename(os.getcwd())
 
     src_folder = os.getcwd()
     dst_folder = os.getcwd() + "/vids/"
 
-    try: 
-        os.mkdir(dst_folder) 
-    except OSError as error: 
-        print(error) 
-
+    try:
+        os.mkdir(dst_folder)
+    except OSError as error:
+        print(error)
 
     # Search files with .mp4 extension in source directory
     pattern = "\*.mp4"
@@ -212,13 +217,9 @@ url2 = urljoin(url_feed, "?" + urlencode(query_params))
 print(url_feed)
 print(url2)
 
-with requests.get(url_feed, params=query_params) as r:
-        r.raise_for_status()
-        response = r.json()
+with requests.get(url_feed, params=query_params, timeout=100) as r:
+    r.raise_for_status()
+    response = r.json()
 
-save_to_file("Edwin Díaz", response)
+save_to_file("player", response)
 
-
-df2['MPH'] = df2['MPH'].astype(float)
-avg = df2["MPH"].mean()
-print(avg)
