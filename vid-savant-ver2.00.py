@@ -141,9 +141,12 @@ is_last_pitch_str = ""
 
 is_last_pitch = is_last_pitch_str.lower() == "true"
 flag = "is...last...pitch|" if is_last_pitch else ""
-url = f"https://baseballsavant.mlb.com/statcast_search?hfPTM=&hfPT=&hfAB=&hfGT=R%7C&hfPR=&hfZ=&hfStadium=&hfBBL=&hfNewZones=&hfPull=&hfC=&hfSea={season}%7C&hfSit=&player_type=pitcher&hfOuts=&hfOpponent=&pitcher_throws=&batter_stands=&hfSA=&game_date_gt={start_date}&game_date_lt={end_date}&hfMo=&hfTeam=&home_road=&hfRO=&position=&hfInfield=&hfOutfield=&hfInn=&hfBBT=&hfFlag={flag}&pitchers_lookup%5B%5D={player_id}&metric_1=&group_by=name&min_pitches=0&min_results=0&min_pas=0&sort_col=pitches&player_event_sort=api_p_release_speed&sort_order=desc&type=details&player_id={player_id}"
+player_type = "pitcher" if matching_df['POS'].iloc[0] == "P" else "batter"
+lookup = "pitchers" if player_type == "pitcher" else "batters"
+url = f"https://baseballsavant.mlb.com/statcast_search?hfPTM=&hfPT=&hfAB=&hfGT=R%7C&hfPR=&hfZ=&hfStadium=&hfBBL=&hfNewZones=&hfPull=&hfC=&hfSea={season}%7C&hfSit=&player_type={player_type}&hfOuts=&hfOpponent=&pitcher_throws=&batter_stands=&hfSA=&game_date_gt={start_date}&game_date_lt={end_date}&hfMo=&hfTeam=&home_road=&hfRO=&position=&hfInfield=&hfOutfield=&hfInn=&hfBBT=&hfFlag={flag}&{lookup}_lookup%5B%5D={player_id}&metric_1=&group_by=name&min_pitches=0&min_results=0&min_pas=0&sort_col=pitches&player_event_sort=api_p_release_speed&sort_order=desc&type=details&player_id={player_id}"
 r = requests.get(url, allow_redirects=True, timeout=100)
 html = r.content
+print(url)
 
 open('site.txt', 'wb').write(html)
 
@@ -229,7 +232,7 @@ query_params = {
     "hfC": "",
     "hfSea": season + "|",
     "hfSit": "",
-    "player_type": "pitcher",
+    "player_type": player_type,
     "hfOuts": "",
     "hfOpponent": "",
     "pitcher_throws": "",
@@ -247,7 +250,7 @@ query_params = {
     "hfInn": "",
     "hfBBT": "",
     "hfFlag": "",
-    "pitchers_lookup[]": player_id,
+    lookup + "_lookup[]": player_id,
     "metric_1": "",
     "group_by": "name",
     "min_pitches": "",
