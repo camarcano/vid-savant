@@ -9,12 +9,13 @@ import requests
 import youtube_dl
 from bs4 import BeautifulSoup
 import pandas as pd
+from urllib.parse import urlencode, urljoin
+import unicodecsv as csv
 
 
 def find_video_links(webpage_html):
     expression = r'"(/sporty-v.*?)" target'
     return re.findall(expression, webpage_html)
-
 
 def find_pitch_types(webpage_html):
     expression = r'search-pitch-label-.*?</span>'
@@ -42,6 +43,38 @@ def rename(directory):
         if os.path.splitext(file)[1] == ".mp4":
             os.rename(file, "name{:03d}.mp4".format(num))
             num += 1
+
+
+def save_to_file(player, player_data):
+    if not player_data:
+        print("No player data to save to file.")
+        return
+
+    player_name = player.replace(".", "").strip().lower()
+    filename = "_".join(player_name.split(" ")) + ".csv"
+    filepath = os.path.join(os.getcwd(), filename)
+    with open(filepath, "wb") as csv_file:
+        rows = []
+        writer = csv.writer(
+            csv_file,
+            delimiter=",",
+            quotechar="\""
+        )
+
+        header = player_data[0].keys()
+        rows.append(header)
+
+        for data in player_data:
+          row = [data[key] for key in header]
+          #writer.writerow(row)
+          rows.append(row)
+
+        reversed_rows = rows[:0:-1]
+        rows = rows[:1] + reversed_rows
+        writer.writerows(rows)
+    
+
+
 
 
 ydl_opts = {}
@@ -88,36 +121,104 @@ if len(matches) <= 1:
     print("ERROR, 0 matches found in request")
     exit()
 
+pitches = ['EP', 'CU', 'CH', 'SI', 'SL', 'FF', 'FA', 'FC', 
+           'KC', 'FS', 'CS', 'PO', 'IN', 'SC']
 pitch = input("Enter pitch  type: ")
-found = df.index[df['Pitch'] == pitch].tolist()
-df2 = df.loc[df['Pitch'] == pitch]
-result = [matches[i] for i in found]
-
-"""
-download_all_matches(result)
-rename(os.getcwd())
-
-src_folder = os.getcwd()
-dst_folder = os.getcwd() + "/vids/"
-
-try: 
-    os.mkdir(dst_folder) 
-except OSError as error: 
-    print(error) 
+if pitch.upper() in pitches:
+    found = df.index[df['Pitch'] == pitch.upper()].tolist()
+    df2 = df.loc[df['Pitch'] == pitch.upper()]
+    result = [matches[i] for i in found]
+else:
+    pitch = ""
+    found = df.index.tolist()
+    df2 = df
+    result = [matches[i] for i in found]
 
 
-# Search files with .mp4 extension in source directory
-pattern = "\*.mp4"
-files = glob.glob(src_folder + pattern)
+down = input("Do you want to download the pitches? (y/n): ")
 
-# move the files with mp4 extension
-for file in files:
-    # extract file name form file path
-    file_name = os.path.basename(file)
-    shutil.move(file, dst_folder + file_name)
-    print('Moved:', file)
+if(down.lower()=='y'):
+    download_all_matches(result)
+    rename(os.getcwd())
 
-"""
+    src_folder = os.getcwd()
+    dst_folder = os.getcwd() + "/vids/"
+
+    try: 
+        os.mkdir(dst_folder) 
+    except OSError as error: 
+        print(error) 
+
+
+    # Search files with .mp4 extension in source directory
+    pattern = "\*.mp4"
+    files = glob.glob(src_folder + pattern)
+
+    # move the files with mp4 extension
+    for file in files:
+        # extract file name form file path
+        file_name = os.path.basename(file)
+        shutil.move(file, dst_folder + file_name)
+        print('Moved:', file)
+
+url_feed = "https://baseballsavant.mlb.com/feed"
+query_params = {
+    "warehouse": "True",
+    "hfPTM": pitch + "|",
+    "hfAB": "",
+    "hfGT": "",
+    "hfPR": "",
+    "hfZ": "",
+    "hfStadium": "",
+    "hfBBL": "",
+    "hfNewZones": "",
+    "hfPull": "",
+    "hfC": "",
+    "hfSea": season + "|",
+    "hfSit": "",
+    "player_type": "pitcher",
+    "hfOuts": "",
+    "hfOpponent": "",
+    "pitcher_throws": "",
+    "batter_stands": "",
+    "hfSA": "",
+    "game_date_gt": start_date,
+    "game_date_lt": end_date,
+    "hfMo": "",
+    "hfTeam": "",
+    "home_road": "",
+    "hfRO": "",
+    "position": "",
+    "hfInfield": "",
+    "hfOutfield": "",
+    "hfInn": "",
+    "hfBBT": "",
+    "hfFlag": "",
+    "pitchers_lookup[]": player_id,
+    "metric_1": "",
+    "group_by": "name",
+    "min_pitches": "",
+    "min_results": "",
+    "min_pas": "",
+    "sort_col": "pitches",
+    "player_event_sort": "api_p_release_speed",
+    "sort_order": "desc",
+    "type": "details",
+    "player_id": player_id
+}
+
+url2 = urljoin(url_feed, "?" + urlencode(query_params))
+
+print(url_feed)
+print(url2)
+
+with requests.get(url_feed, params=query_params) as r:
+        r.raise_for_status()
+        response = r.json()
+
+save_to_file("Edwin Díaz", response)
+
+
 df2['MPH'] = df2['MPH'].astype(float)
 avg = df2["MPH"].mean()
 print(avg)
