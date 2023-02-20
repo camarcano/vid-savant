@@ -14,6 +14,7 @@ import pandas as pd
 import unicodecsv as csv
 from fuzzywuzzy import fuzz
 
+
 def find_video_links(webpage_html):
     """ Extracts the portion of the link that points to
     the video file """
@@ -51,7 +52,7 @@ def rename(directory):
     num = 1
     for file in [file for file in sorted(os.listdir(), key=os.path.getctime, reverse=False) if os.path.splitext(file)[1] == ".mp4"]:
         if os.path.splitext(file)[1] == ".mp4":
-            os.rename(file, "name{:03d}.mp4".format(num))
+            os.rename(file, matching_df['MLBNAME'].iloc[0] + " - ".join(log_videos[1:]) + " - {:03d}.mp4".format(num))
             num += 1
 
 
@@ -62,8 +63,8 @@ def save_to_file(player, player_data):
         return
 
     player_name = player.replace(".", "").strip().lower()
-    filename = "_".join(player_name.split(" ")) + ".csv"
-    filepath = os.path.join(os.getcwd(), filename)
+    filename = "_".join(player_name.split(" "))
+    filepath = os.path.join(os.getcwd(), filename + "_" + "_".join(log_videos[1:]) + ".csv") 
     with open(filepath, "wb") as csv_file:
         rows = []
         writer = csv.writer(
@@ -133,10 +134,10 @@ while exect:
     if (test.lower() == "n"):
         exect = False
 
+player_id = str(int(matching_df['MLBID'].iloc[0]))
 
-    
-    """
-is_last_pitch_str = input("Is last pitch (True/False)? ")
+  
+is_last_pitch_str = ""
 
 is_last_pitch = is_last_pitch_str.lower() == "true"
 flag = "is...last...pitch|" if is_last_pitch else ""
@@ -175,17 +176,19 @@ if len(matches) <= 1:
 pitches = ['EP', 'CU', 'CH', 'SI', 'SL', 'FF', 'FA', 'FC',
            'KC', 'FS', 'CS', 'PO', 'IN', 'SC']
 pitch = input("Enter pitch  type: ")
+pitch = pitch.upper()
 if pitch.upper() in pitches:
     found = df.index[df['Pitch'] == pitch.upper()].tolist()
     df2 = df.loc[df['Pitch'] == pitch.upper()]
     result = [matches[i] for i in found]
 else:
-    pitch = ""
+    pitch = "ALL"
     found = df.index.tolist()
     df2 = df
     result = [matches[i] for i in found]
 
-
+log_videos = [matching_df['MLBNAME'].iloc[0], start_date, end_date,
+             pitch, str(len(df2))]
 down = input("Do you want to download the pitches? (y/n): ")
 
 if (down.lower() == 'y'):
@@ -214,7 +217,7 @@ if (down.lower() == 'y'):
 url_feed = "https://baseballsavant.mlb.com/feed"
 query_params = {
     "warehouse": "True",
-    "hfPTM": pitch + "|",
+    "hfPTM": "" if pitch.upper() == "ALL" else pitch + "|",
     "hfAB": "",
     "hfGT": "",
     "hfPR": "",
@@ -266,5 +269,4 @@ with requests.get(url_feed, params=query_params, timeout=100) as r:
     r.raise_for_status()
     response = r.json()
 
-save_to_file("player", response)
-"""
+save_to_file(matching_df['MLBNAME'].iloc[0], response)
